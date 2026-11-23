@@ -212,6 +212,20 @@ npm install @apache-arrow/esnext-esm # standalone esNext/ESModules package
 npm install @apache-arrow/esnext-umd # standalone esNext/UMD package
 ```
 
+### Experimental browser entry point
+
+This fork resolves browser imports of `apache-arrow` to the base module. Table,
+vector, and IPC APIs are still available. To use Arrow's DOM stream adapters,
+import the explicit entry point:
+
+```js
+import {RecordBatchReader} from 'apache-arrow/dom';
+```
+
+You can also initialize the adapters with `import 'apache-arrow/dom';`.
+Both entry points share the same Arrow classes. The Node.js entry point keeps
+its existing stream registration.
+
 ### Why we package like this
 
 The JS community is a diverse group with a varied list of target environments and tool chains. Publishing multiple packages accommodates projects of all stripes.

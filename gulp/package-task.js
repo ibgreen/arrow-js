@@ -48,8 +48,8 @@ const createMainPackageJson = (target, format) => (orig) => ({
     unpkg: `${mainExport}.es2015.min.js`,
     jsdelivr: `${mainExport}.es2015.min.js`,
     browser: {
-        [`./${mainExport}.node.js`]: `./${mainExport}.dom.js`,
-        [`./${mainExport}.node.mjs`]: `./${mainExport}.dom.mjs`
+        [`./${mainExport}.node.js`]: `./${mainExport}.js`,
+        [`./${mainExport}.node.mjs`]: `./${mainExport}.mjs`
     },
     exports: {
         '.': {
@@ -64,13 +64,23 @@ const createMainPackageJson = (target, format) => (orig) => ({
                 },
             },
             import: {
+                types: `./${mainExport}.d.ts`,
+                default: `./${mainExport}.mjs`,
+            },
+            require: {
+                types: `./${mainExport}.d.ts`,
+                default: `./${mainExport}.js`,
+            }
+        },
+        './dom': {
+            import: {
                 types: `./${mainExport}.dom.d.ts`,
                 default: `./${mainExport}.dom.mjs`,
             },
             require: {
                 types: `./${mainExport}.dom.d.ts`,
                 default: `./${mainExport}.dom.js`,
-            }
+            },
         },
         './*': {
             import: {
@@ -83,7 +93,8 @@ const createMainPackageJson = (target, format) => (orig) => ({
             },
         },
     },
-    sideEffects: false,
+    // These entry points install stream adapters on the shared Arrow classes.
+    sideEffects: ['dom', 'node'].flatMap(env => ['js', 'mjs'].map(ext => `./${mainExport}.${env}.${ext}`)),
     esm: { mode: `all`, sourceMap: true }
 });
 
