@@ -226,6 +226,25 @@ You can also initialize the adapters with `import 'apache-arrow/dom';`.
 Both entry points share the same Arrow classes. The Node.js entry point keeps
 its existing stream registration.
 
+For individual adapters without registration, import from
+`apache-arrow/web-streams` or `apache-arrow/node-streams`. For example:
+
+```js
+import {recordBatchReaderThroughDOMStream} from 'apache-arrow/web-streams';
+
+const batches = response.body.pipeThrough(recordBatchReaderThroughDOMStream());
+```
+
+For more specific IPC operations, `apache-arrow/ipc/reader` exports
+`readIPCBytes`, `readIPCStream`, `readIPCFile` (for seekable handles), and
+`readIPCBatches` (for iterating consecutive IPC readers).
+`apache-arrow/ipc/writer` exports `writeIPCStream`, `writeIPCFile`, and
+`writeIPCJSON` for in-memory inputs. The direct functions leave existing
+class methods available. `makeField` is available from the root, and
+`encodeIPCMessage` and `decodeIPCMessage` are available from
+`apache-arrow/ipc/metadata/message`. A browser bundle comparison can be run with
+`node scripts/test-browser-entry.mjs` after building `targets/apache-arrow`.
+
 ### Why we package like this
 
 The JS community is a diverse group with a varied list of target environments and tool chains. Publishing multiple packages accommodates projects of all stripes.

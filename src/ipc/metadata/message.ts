@@ -77,48 +77,12 @@ export class Message<T extends MessageHeader = any> {
 
     /** @nocollapse */
     public static decode(buf: ArrayBufferViewInput) {
-        buf = new ByteBuffer(toUint8Array(buf));
-        const _message = _Message.getRootAsMessage(buf);
-        const bodyLength: bigint = _message.bodyLength()!;
-        const version: MetadataVersion = _message.version();
-        const headerType: MessageHeader = _message.headerType();
-        const metadata = decodeMessageCustomMetadata(_message);
-        const message = new Message(bodyLength, version, headerType, undefined, metadata);
-        message._createHeader = decodeMessageHeader(_message, headerType);
-        return message;
+        return decodeIPCMessage(buf);
     }
 
     /** @nocollapse */
     public static encode<T extends MessageHeader>(message: Message<T>) {
-        const b = new Builder();
-        let headerOffset = -1;
-        if (message.isSchema()) {
-            headerOffset = Schema.encode(b, message.header() as Schema);
-        } else if (message.isRecordBatch()) {
-            headerOffset = RecordBatch.encode(b, message.header() as RecordBatch);
-        } else if (message.isDictionaryBatch()) {
-            headerOffset = DictionaryBatch.encode(b, message.header() as DictionaryBatch);
-        }
-
-        // Encode custom metadata if present (must be done before startMessage)
-        const customMetadataOffset = !(message.metadata && message.metadata.size > 0) ? -1 :
-            _Message.createCustomMetadataVector(b, [...message.metadata].map(([k, v]) => {
-                const key = b.createString(`${k}`);
-                const val = b.createString(`${v}`);
-                _KeyValue.startKeyValue(b);
-                _KeyValue.addKey(b, key);
-                _KeyValue.addValue(b, val);
-                return _KeyValue.endKeyValue(b);
-            }));
-
-        _Message.startMessage(b);
-        _Message.addVersion(b, MetadataVersion.V5);
-        _Message.addHeader(b, headerOffset);
-        _Message.addHeaderType(b, message.headerType);
-        _Message.addBodyLength(b, BigInt(message.bodyLength));
-        if (customMetadataOffset !== -1) { _Message.addCustomMetadata(b, customMetadataOffset); }
-        _Message.finishMessageBuffer(b, _Message.endMessage(b));
-        return b.asUint8Array();
+        return encodeIPCMessage(message);
     }
 
     /** @nocollapse */
@@ -153,15 +117,60 @@ export class Message<T extends MessageHeader = any> {
     public isRecordBatch(): this is Message<MessageHeader.RecordBatch> { return this.headerType === MessageHeader.RecordBatch; }
     public isDictionaryBatch(): this is Message<MessageHeader.DictionaryBatch> { return this.headerType === MessageHeader.DictionaryBatch; }
 
-    constructor(bodyLength: bigint | number, version: MetadataVersion, headerType: T, header?: any, metadata?: Map<string, string>) {
+    constructor(bodyLength: bigint | number, version: MetadataVersion, headerType: T, header?: any, metadata?: Map<string, string>, decodeHeader?: MessageHeaderDecoder) {
         this._version = version;
         this._headerType = headerType;
         this.body = new Uint8Array(0);
         this._compression = header?.compression;
-        header && (this._createHeader = () => header);
+        if (decodeHeader) this._createHeader = decodeHeader;
+        else if (header) this._createHeader = () => header;
         this._bodyLength = bigIntToNumber(bodyLength);
         this._metadata = metadata || new Map();
     }
+}
+
+/** Decodes an IPC message while leaving header materialization lazy. */
+export function decodeIPCMessage(buf: ArrayBufferViewInput) {
+    const buffer = new ByteBuffer(toUint8Array(buf));
+    const _message = _Message.getRootAsMessage(buffer);
+    const bodyLength: bigint = _message.bodyLength()!;
+    const version: MetadataVersion = _message.version();
+    const headerType: MessageHeader = _message.headerType();
+    const metadata = decodeMessageCustomMetadata(_message);
+    return new Message(bodyLength, version, headerType, undefined, metadata, decodeMessageHeader(_message, headerType));
+}
+
+/** Encodes an IPC message header as a FlatBuffer. */
+export function encodeIPCMessage<T extends MessageHeader>(message: Message<T>) {
+    const b = new Builder();
+    let headerOffset = -1;
+    if (message.isSchema()) {
+        headerOffset = Schema.encode(b, message.header() as Schema);
+    } else if (message.isRecordBatch()) {
+        headerOffset = RecordBatch.encode(b, message.header() as RecordBatch);
+    } else if (message.isDictionaryBatch()) {
+        headerOffset = DictionaryBatch.encode(b, message.header() as DictionaryBatch);
+    }
+
+    // Encode custom metadata if present (must be done before startMessage)
+    const customMetadataOffset = !(message.metadata && message.metadata.size > 0) ? -1 :
+        _Message.createCustomMetadataVector(b, [...message.metadata].map(([k, v]) => {
+            const key = b.createString(`${k}`);
+            const val = b.createString(`${v}`);
+            _KeyValue.startKeyValue(b);
+            _KeyValue.addKey(b, key);
+            _KeyValue.addValue(b, val);
+            return _KeyValue.endKeyValue(b);
+        }));
+
+    _Message.startMessage(b);
+    _Message.addVersion(b, MetadataVersion.V5);
+    _Message.addHeader(b, headerOffset);
+    _Message.addHeaderType(b, message.headerType);
+    _Message.addBodyLength(b, BigInt(message.bodyLength));
+    if (customMetadataOffset !== -1) { _Message.addCustomMetadata(b, customMetadataOffset); }
+    _Message.finishMessageBuffer(b, _Message.endMessage(b));
+    return b.asUint8Array();
 }
 
 /**

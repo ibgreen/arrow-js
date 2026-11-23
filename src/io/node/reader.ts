@@ -17,7 +17,7 @@
 
 import { Duplex, DuplexOptions } from 'node:stream';
 import { AsyncByteQueue } from '../../io/stream.js';
-import { RecordBatchReader } from '../../ipc/reader.js';
+import { type RecordBatchReader, readIPCStream } from '../../ipc/reader.js';
 import { RecordBatch } from '../../recordbatch.js';
 import { TypeMap } from '../../type.js';
 
@@ -70,7 +70,7 @@ class RecordBatchReaderDuplex<T extends TypeMap = any> extends Duplex {
         cb(this._asyncQueue = this._reader = null);
     }
     async _open(source: AsyncByteQueue) {
-        return await (await RecordBatchReader.from<T>(source)).open({ autoDestroy: this._autoDestroy });
+        return await (await readIPCStream<T>(source)).open({ autoDestroy: this._autoDestroy });
     }
     async _pull(size: number, reader: RecordBatchReader<T>) {
         let r: IteratorResult<RecordBatch<T>> | null = null;

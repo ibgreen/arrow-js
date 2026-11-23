@@ -18,7 +18,7 @@
 import { TypeMap } from '../../type.js';
 import { RecordBatch } from '../../recordbatch.js';
 import { AsyncByteQueue } from '../../io/stream.js';
-import { RecordBatchReader } from '../../ipc/reader.js';
+import { type RecordBatchReader, readIPCStream } from '../../ipc/reader.js';
 
 /** @ignore */
 export function recordBatchReaderThroughDOMStream<T extends TypeMap = any>(writableStrategy?: ByteLengthQueuingStrategy, readableStrategy?: { autoDestroy: boolean }) {
@@ -35,7 +35,7 @@ export function recordBatchReaderThroughDOMStream<T extends TypeMap = any>(writa
     return { writable: new WritableStream(queue, { 'highWaterMark': 2 ** 14, ...writableStrategy }), readable };
 
     async function open() {
-        return await (await RecordBatchReader.from<T>(queue)).open(readableStrategy);
+        return await (await readIPCStream<T>(queue)).open(readableStrategy);
     }
 
     async function next(controller: ReadableStreamDefaultController<RecordBatch<T>>, reader: RecordBatchReader<T>) {

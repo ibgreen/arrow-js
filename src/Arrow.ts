@@ -58,7 +58,7 @@ export {
 export { Table, makeTable, tableFromArrays } from './table.js';
 export { Vector, makeVector } from './vector.js';
 export { Visitor } from './visitor.js';
-export { Schema, Field } from './schema.js';
+export { Schema, Field, makeField } from './schema.js';
 
 export { MapRow } from './row/map.js';
 export { StructRow } from './row/struct.js';

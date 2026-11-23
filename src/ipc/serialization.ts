@@ -25,7 +25,7 @@ import {
     RecordBatchFileReader, RecordBatchStreamReader,
     AsyncRecordBatchFileReader, AsyncRecordBatchStreamReader
 } from './reader.js';
-import { RecordBatchFileWriter, RecordBatchStreamWriter, RecordBatchStreamWriterOptions } from './writer.js';
+import { writeIPCFile, writeIPCStream } from './writer.js';
 
 type RecordBatchReaders<T extends TypeMap = any> = RecordBatchFileReader<T> | RecordBatchStreamReader<T>;
 type AsyncRecordBatchReaders<T extends TypeMap = any> = AsyncRecordBatchFileReader<T> | AsyncRecordBatchStreamReader<T>;
@@ -60,8 +60,5 @@ export function tableFromIPC<T extends TypeMap = any>(input: any): Table<T> | Pr
  * @param type Whether to serialize the Table as a file or a stream.
  */
 export function tableToIPC<T extends TypeMap = any>(table: Table, type: 'file' | 'stream' = 'stream', compressionType: CompressionType | null = null): Uint8Array {
-    const writerOptions: RecordBatchStreamWriterOptions = { compressionType };
-    return (type === 'stream' ? RecordBatchStreamWriter : RecordBatchFileWriter)
-        .writeAll<T>(table, writerOptions)
-        .toUint8Array(true);
+    return (type === 'stream' ? writeIPCStream : writeIPCFile)<T>(table, { compressionType });
 }

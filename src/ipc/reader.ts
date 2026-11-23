@@ -162,13 +162,13 @@ export class RecordBatchReader<T extends TypeMap = any> extends ReadableInterop<
         } else if (isArrowJSON(source)) {
             return fromArrowJSON<T>(source);
         } else if (isFileHandle(source)) {
-            return fromFileHandle<T>(source);
+            return readIPCFile<T>(source);
         } else if (isPromise<any>(source)) {
             return (async () => await RecordBatchReader.from<any>(await source))();
         } else if (isFetchResponse(source) || isReadableDOMStream(source) || isReadableNodeStream(source) || isAsyncIterable(source)) {
-            return fromAsyncByteStream<T>(new AsyncByteStream(source));
+            return readIPCStream<T>(source);
         }
-        return fromByteStream<T>(new ByteStream(source));
+        return readIPCBytes<T>(source);
     }
 
     public static readAll<T extends RecordBatchReader>(source: T): T extends RecordBatchReaders ? IterableIterator<T> : AsyncIterableIterator<T>;
@@ -179,13 +179,8 @@ export class RecordBatchReader<T extends TypeMap = any> extends ReadableInterop<
     public static readAll<T extends TypeMap = any>(source: FromArg4): AsyncIterableIterator<AsyncRecordBatchReaders<T>>;
     public static readAll<T extends TypeMap = any>(source: FromArg5): AsyncIterableIterator<AsyncRecordBatchReaders<T>>;
     /** @nocollapse */
-    public static readAll<T extends TypeMap = any>(source: any) {
-        if (source instanceof RecordBatchReader) {
-            return source.isSync() ? readAllSync(source) : readAllAsync(source as AsyncRecordBatchReaders<T>);
-        } else if (isArrowJSON(source) || ArrayBuffer.isView(source) || isIterable<ArrayBufferViewInput>(source) || isIteratorResult(source)) {
-            return readAllSync<T>(source) as IterableIterator<RecordBatchReaders<T>>;
-        }
-        return readAllAsync<T>(source) as AsyncIterableIterator<RecordBatchReaders<T> | AsyncRecordBatchReaders<T>>;
+    public static readAll<T extends TypeMap = any>(source: any): IterableIterator<RecordBatchReader> | AsyncIterableIterator<RecordBatchReader> {
+        return readIPCBatches<T>(source);
     }
 }
 
@@ -796,6 +791,38 @@ async function* readAllAsync<T extends TypeMap = any>(source: AsyncRecordBatchRe
 /** @ignore */
 function fromArrowJSON<T extends TypeMap>(source: ArrowJSONLike) {
     return new RecordBatchStreamReader(new RecordBatchJSONReaderImpl<T>(source));
+}
+
+/** Iterates the IPC readers in a source, closing the reader once iteration ends. */
+export function readIPCBatches<T extends RecordBatchReader>(source: T): T extends RecordBatchReaders ? IterableIterator<T> : AsyncIterableIterator<T>;
+export function readIPCBatches<T extends TypeMap = any>(source: FromArg0): IterableIterator<RecordBatchStreamReader<T>>;
+export function readIPCBatches<T extends TypeMap = any>(source: FromArg1): AsyncIterableIterator<RecordBatchStreamReader<T>>;
+export function readIPCBatches<T extends TypeMap = any>(source: FromArg2): IterableIterator<RecordBatchFileReader<T> | RecordBatchStreamReader<T>>;
+export function readIPCBatches<T extends TypeMap = any>(source: FromArg3): AsyncIterableIterator<RecordBatchFileReader<T> | RecordBatchStreamReader<T>>;
+export function readIPCBatches<T extends TypeMap = any>(source: FromArg4): AsyncIterableIterator<AsyncRecordBatchReaders<T>>;
+export function readIPCBatches<T extends TypeMap = any>(source: FromArg5): AsyncIterableIterator<AsyncRecordBatchReaders<T>>;
+export function readIPCBatches<T extends TypeMap = any>(source: any) {
+    if (source instanceof RecordBatchReader) {
+        return source.isSync() ? readAllSync(source) : readAllAsync(source as AsyncRecordBatchReaders<T>);
+    } else if (isArrowJSON(source) || ArrayBuffer.isView(source) || isIterable<ArrayBufferViewInput>(source) || isIteratorResult(source)) {
+        return readAllSync<T>(source) as IterableIterator<RecordBatchReaders<T>>;
+    }
+    return readAllAsync<T>(source) as AsyncIterableIterator<RecordBatchReaders<T> | AsyncRecordBatchReaders<T>>;
+}
+
+/** Opens IPC from an in-memory buffer or an iterable of buffers. */
+export function readIPCBytes<T extends TypeMap = any>(source: FromArg2) {
+    return fromByteStream<T>(new ByteStream(source));
+}
+
+/** Opens IPC from an asynchronous byte source. */
+export function readIPCStream<T extends TypeMap = any>(source: FromArg4) {
+    return fromAsyncByteStream<T>(new AsyncByteStream(source));
+}
+
+/** Opens IPC from a seekable file handle. */
+export function readIPCFile<T extends TypeMap = any>(source: FileHandle) {
+    return fromFileHandle<T>(source);
 }
 
 /** @ignore */

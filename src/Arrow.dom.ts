@@ -66,7 +66,7 @@ export {
     FixedSizeList,
     Map_, MapRow,
     Table, makeTable, tableFromArrays,
-    Schema, Field,
+    Schema, Field, makeField,
     Visitor,
     Vector, makeVector, vectorFromArray, tableFromJSON,
     ByteStream, AsyncByteStream, AsyncByteQueue,

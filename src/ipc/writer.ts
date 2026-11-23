@@ -539,6 +539,21 @@ export class RecordBatchJSONWriter<T extends TypeMap = any> extends RecordBatchW
     }
 }
 
+/** Encodes an in-memory input as an IPC stream. */
+export function writeIPCStream<T extends TypeMap = any>(input: Table<T> | Iterable<RecordBatch<T>>, options?: RecordBatchStreamWriterOptions) {
+    return writeAll(new RecordBatchStreamWriter<T>(options), input).toUint8Array(true);
+}
+
+/** Encodes an in-memory input as an IPC file. */
+export function writeIPCFile<T extends TypeMap = any>(input: Table<T> | Iterable<RecordBatch<T>>, options?: RecordBatchStreamWriterOptions) {
+    return writeAll(new RecordBatchFileWriter<T>(options), input).toUint8Array(true);
+}
+
+/** Encodes an in-memory input in the Arrow integration JSON format. */
+export function writeIPCJSON<T extends TypeMap = any>(input: Table<T> | Iterable<RecordBatch<T>>) {
+    return new TextDecoder().decode(writeAll(new RecordBatchJSONWriter<T>(), input).toUint8Array(true));
+}
+
 /** @ignore */
 function writeAll<T extends TypeMap = any>(writer: RecordBatchWriter<T>, input: Table<T> | Iterable<RecordBatch<T>>) {
     let chunks = input as Iterable<RecordBatch<T>>;

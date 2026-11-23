@@ -20,14 +20,22 @@ import { RecordBatch } from '../../recordbatch.js';
 import { AsyncByteStream } from '../../io/stream.js';
 import { RecordBatchWriter } from '../../ipc/writer.js';
 
-/** @ignore */
+/** Compatibility method installed by the DOM entry point. */
 export function recordBatchWriterThroughDOMStream<T extends TypeMap = any>(
     this: typeof RecordBatchWriter,
     writableStrategy?: QueuingStrategy<RecordBatch<T>> & { autoDestroy: boolean },
     readableStrategy?: { highWaterMark?: number; size?: any }
 ) {
+    return createRecordBatchWriterDOMStream<T>(this, writableStrategy, readableStrategy);
+}
 
-    const writer = new this<T>(writableStrategy);
+/** Creates a Web Streams IPC encoder using the supplied writer class. */
+export function createRecordBatchWriterDOMStream<T extends TypeMap = any>(
+    Writer: typeof RecordBatchWriter,
+    writableStrategy?: QueuingStrategy<RecordBatch<T>> & { autoDestroy: boolean },
+    readableStrategy?: { highWaterMark?: number; size?: any }
+) {
+    const writer = new Writer<T>(writableStrategy);
     const reader = new AsyncByteStream(writer);
     const readable = new ReadableStream({
         // type: 'bytes',

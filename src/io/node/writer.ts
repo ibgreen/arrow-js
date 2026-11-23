@@ -21,9 +21,14 @@ import { AsyncByteStream } from '../../io/stream.js';
 import { RecordBatchWriter } from '../../ipc/writer.js';
 import { TypeMap } from '../../type.js';
 
-/** @ignore */
+/** Compatibility method installed by the Node entry point. */
 export function recordBatchWriterThroughNodeStream<T extends TypeMap = any>(this: typeof RecordBatchWriter, options?: DuplexOptions & { autoDestroy: boolean }) {
-    return new RecordBatchWriterDuplex(new this<T>(options));
+    return createRecordBatchWriterNodeStream<T>(this, options);
+}
+
+/** Creates a Node stream IPC encoder using the supplied writer class. */
+export function createRecordBatchWriterNodeStream<T extends TypeMap = any>(Writer: typeof RecordBatchWriter, options?: DuplexOptions & { autoDestroy: boolean }) {
+    return new RecordBatchWriterDuplex(new Writer<T>(options));
 }
 
 /** @ignore */

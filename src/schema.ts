@@ -144,14 +144,7 @@ export class Field<T extends DataType = any> {
     public static new<T extends DataType = any>(name: string | number | Field<T>, type: T, nullable?: boolean, metadata?: Map<string, string> | null): Field<T>;
     /** @nocollapse */
     public static new<T extends DataType = any>(...args: any[]) {
-        let [name, type, nullable, metadata] = args;
-        if (args[0] && typeof args[0] === 'object') {
-            ({ name } = args[0]);
-            (type === undefined) && (type = args[0].type);
-            (nullable === undefined) && (nullable = args[0].nullable);
-            (metadata === undefined) && (metadata = args[0].metadata);
-        }
-        return new Field<T>(`${name}`, type, nullable, metadata);
+        return createField<T>(args);
     }
 
     public readonly type: T;
@@ -219,4 +212,23 @@ function generateDictionaryMap(fields: Field[], dictionaries = new Map<number, D
     }
 
     return dictionaries;
+}
+
+/** Creates a Field from properties or positional arguments. */
+export function makeField<T extends DataType = any>(props: { name: string | number; type: T; nullable?: boolean; metadata?: Map<string, string> | null }): Field<T>;
+export function makeField<T extends DataType = any>(name: string | number | Field<T>, type: T, nullable?: boolean, metadata?: Map<string, string> | null): Field<T>;
+export function makeField<T extends DataType = any>(...args: any[]) {
+    return createField<T>(args);
+}
+
+/** Normalizes the positional and property-object field factories. */
+function createField<T extends DataType>(args: any[]) {
+    let [name, type, nullable, metadata] = args;
+    if (args[0] && typeof args[0] === 'object') {
+        ({ name } = args[0]);
+        (type === undefined) && (type = args[0].type);
+        (nullable === undefined) && (nullable = args[0].nullable);
+        (metadata === undefined) && (metadata = args[0].metadata);
+    }
+    return new Field<T>(`${name}`, type, nullable, metadata);
 }
